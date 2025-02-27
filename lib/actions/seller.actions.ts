@@ -48,7 +48,7 @@ export async function fetchSellers(type?: 'json') {
    }
 }
 
-export async function changeSellerStatus({ sellerId, newStatus }: { sellerId: string, newStatus: string }) {
+export async function changeSellerStatus({ sellerId, newStatus }: { sellerId: string, newStatus: string }): Promise<void> {
   try {
     connectToDB();
 
