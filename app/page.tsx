@@ -1,101 +1,288 @@
-import Image from "next/image";
+"use client"
+
+import { useState, useEffect } from "react"
+import { fetchSellers, createSeller, changeSellerStatus } from "@/lib/actions/seller.actions"
+import type { SellerType } from "@/lib/models/seller.model"
+import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
+import { Plus, Search, ArrowLeft, ArrowRight, CheckCircle2, XCircle } from "lucide-react"
+
+const statusFlow = [
+  "Запитали за товар",
+  "Дякую",
+  "Запропонували",
+  "Хочуть подивитися",
+  "Надіслали сайт",
+  "Взяли/Дали контакт",
+  "Zoom",
+  "В процесі",
+  "Клієнт",
+  "Відмовили",
+  "Не хочуть подивитися",
+]
+
+const getNextStatuses = (currentStatus: string) => {
+  switch (currentStatus) {
+    case "Запитали за товар":
+      return ["Дякую"]
+    case "Дякую":
+      return ["Запропонували"]
+    case "Запропонували":
+      return ["Хочуть подивитися", "Не хочуть подивитися"]
+    case "Хочуть подивитися":
+      return ["Надіслали сайт"]
+    case "Надіслали сайт":
+      return ["Взяли/Дали контакт", "Відмовили"]
+    case "Взяли/Дали контакт":
+      return ["Zoom"]
+    case "Zoom":
+      return ["В процесі"]
+    case "В процесі":
+      return ["Клієнт"]
+    default:
+      return []
+  }
+}
+
+const getPreviousStatus = (currentStatus: string) => {
+  const currentIndex = statusFlow.indexOf(currentStatus)
+  if (currentIndex <= 0) return null
+  if (currentStatus === "Відмовили" || currentStatus === "Не хочуть подивитися") {
+    return "Запропонували"
+  }
+  return statusFlow[currentIndex - 1]
+}
+
+const getAvailableStatuses = (currentStatus: string) => {
+  const previousStatus = getPreviousStatus(currentStatus)
+  const nextStatuses = getNextStatuses(currentStatus)
+
+  let availableStatuses = [currentStatus]
+
+  if (previousStatus) {
+    availableStatuses.unshift(previousStatus)
+  }
+
+  if (nextStatuses.length > 0) {
+    availableStatuses = availableStatuses.concat(nextStatuses)
+  }
+
+  return availableStatuses
+}
+
+const getStatusColor = (status: string) => {
+  switch (status) {
+    case "Клієнт":
+      return "text-green-600"
+    case "Відмовили":
+    case "Не хочуть подивитися":
+      return "text-red-600"
+    case "В процесі":
+    case "Zoom":
+    case "Взяли/Дали контакт":
+      return "text-blue-600"
+    default:
+      return "text-gray-600"
+  }
+}
+
+const getStatusIcon = (status: string) => {
+  switch (status) {
+    case "Клієнт":
+      return <CheckCircle2 className="inline-block mr-2" size={16} />
+    case "Відмовили":
+    case "Не хочуть подивитися":
+      return <XCircle className="inline-block mr-2" size={16} />
+    default:
+      return null
+  }
+}
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="https://nextjs.org/icons/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  const [sellers, setSellers] = useState<SellerType[]>([])
+  const [filteredSellers, setFilteredSellers] = useState<SellerType[]>([])
+  const [searchTerm, setSearchTerm] = useState("")
+  const [statusFilter, setStatusFilter] = useState("all")
+  const [personFilter, setPersonFilter] = useState("all")
+  const [newSellerName, setNewSellerName] = useState("")
+  const [newSellerPerson, setNewSellerPerson] = useState("")
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="https://nextjs.org/icons/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  useEffect(() => {
+    const loadSellers = async () => {
+      const fetchedSellers = await fetchSellers()
+      // Sort sellers by updatedAt in descending order
+      const sortedSellers = fetchedSellers.sort(
+        (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
+      )
+      setSellers(sortedSellers)
+      setFilteredSellers(sortedSellers)
+    }
+    loadSellers()
+  }, [])
+
+  useEffect(() => {
+    const filtered = sellers.filter(
+      (seller) =>
+        seller.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
+        (statusFilter === "all" || seller.status === statusFilter) &&
+        (personFilter === "all" || seller.person === personFilter),
+    )
+    setFilteredSellers(filtered)
+  }, [searchTerm, statusFilter, personFilter, sellers])
+
+  const handleStatusChange = async (sellerId: string, newStatus: string) => {
+    await changeSellerStatus({ sellerId, newStatus })
+    const updatedSellers = sellers.map((seller) =>
+      seller._id === sellerId ? { ...seller, status: newStatus, updatedAt: new Date().toISOString() } : seller,
+    )
+    setSellers(updatedSellers)
+  }
+
+  const handleCreateSeller = async () => {
+    const newSeller = await createSeller({ name: newSellerName, person: newSellerPerson })
+    setSellers((prevSellers) => [newSeller, ...prevSellers])
+    setNewSellerName("")
+    setNewSellerPerson("")
+    setIsDialogOpen(false)
+  }
+
+  const persons = Array.from(new Set(sellers.map((seller) => seller.person)))
+
+  return (
+    <div className="container mx-auto px-4 py-8">
+      <h1 className="text-3xl font-bold mb-8">Seller Management</h1>
+      <div className="flex flex-col md:flex-row justify-between items-center mb-6 space-y-4 md:space-y-0 md:space-x-4">
+        <div className="relative w-full md:w-1/3">
+          <Input
+            type="text"
+            placeholder="Search sellers..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10"
+          />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-full md:w-[180px]">
+            <SelectValue placeholder="Filter by status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Statuses</SelectItem>
+            {statusFlow.map((status) => (
+              <SelectItem key={status} value={status}>
+                {status}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={personFilter} onValueChange={setPersonFilter}>
+          <SelectTrigger className="w-full md:w-[180px]">
+            <SelectValue placeholder="Filter by person" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Persons</SelectItem>
+            {persons.map((person) => (
+              <SelectItem key={person} value={person}>
+                {person}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <Button className="w-full md:w-auto">
+              <Plus className="mr-2" size={20} /> Add Seller
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Add New Seller</DialogTitle>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="name" className="text-right">
+                  Name
+                </Label>
+                <Input
+                  id="name"
+                  value={newSellerName}
+                  onChange={(e) => setNewSellerName(e.target.value)}
+                  className="col-span-3"
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="person" className="text-right">
+                  Person
+                </Label>
+                <Input
+                  id="person"
+                  value={newSellerPerson}
+                  onChange={(e) => setNewSellerPerson(e.target.value)}
+                  className="col-span-3"
+                />
+              </div>
+            </div>
+            <Button onClick={handleCreateSeller}>Create Seller</Button>
+          </DialogContent>
+        </Dialog>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Person</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Last Updated
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Actions
+              </th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {filteredSellers.map((seller) => (
+              <tr key={seller._id}>
+                <td className="px-6 py-4 whitespace-nowrap">{seller.name}</td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <span className={getStatusColor(seller.status)}>
+                    {getStatusIcon(seller.status)}
+                    {seller.status}
+                  </span>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">{seller.person}</td>
+                <td className="px-6 py-4 whitespace-nowrap">{new Date(seller.updatedAt).toLocaleString()}</td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <Select value={seller.status} onValueChange={(value) => handleStatusChange(seller._id, value)}>
+                    <SelectTrigger className="w-[200px]">
+                      <SelectValue placeholder="Change status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {getAvailableStatuses(seller.status).map((status, index) => (
+                        <SelectItem key={status} value={status}>
+                          <span className={`flex items-center ${getStatusColor(status)}`}>
+                            {index === 0 && status !== seller.status && <ArrowLeft className="mr-2" size={16} />}
+                            {status === seller.status && <span className="font-bold mr-2">Current:</span>}
+                            {index > 0 && status !== seller.status && <ArrowRight className="mr-2" size={16} />}
+                            {getStatusIcon(status)}
+                            {status}
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
-  );
+  )
 }
+
