@@ -174,7 +174,7 @@ export default function Home() {
     setFilteredSellers(filtered)
   }, [searchTerm, statusFilter, personFilter, sellers])
 
-  const handleCopyToClipboard = (status: string, sellerName: string) => {
+  const handleCopyToClipboard = (status: string) => {
     const text = getClipboardText(status)
     if (text) {
       copy(text)
