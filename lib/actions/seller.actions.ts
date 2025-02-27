@@ -62,3 +62,19 @@ export async function changeSellerStatus({ sellerId, newStatus }: { sellerId: st
     throw new Error(`Erorr updating seller status: ${error.message}`)
   }
 }
+
+export async function changeSellerPerson({ sellerId, newPerson }: { sellerId: string, newPerson: string }) {
+  try {
+    connectToDB();
+
+    await Seller.findByIdAndUpdate(
+        sellerId, 
+        {
+            person: newPerson
+        }
+    )
+
+  } catch (error: any) {
+    throw new Error(`Error changing seller person${error.message}`)
+  }
+}

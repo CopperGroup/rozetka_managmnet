@@ -1,14 +1,14 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { fetchSellers, createSeller, changeSellerStatus } from "@/lib/actions/seller.actions"
+import { fetchSellers, createSeller, changeSellerStatus, changeSellerPerson } from "@/lib/actions/seller.actions"
 import type { SellerType } from "@/lib/models/seller.model"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
-import { Plus, Search, ArrowLeft, ArrowRight, CheckCircle2, XCircle } from "lucide-react"
+import { Plus, Search, ArrowLeft, ArrowRight, CheckCircle2, XCircle, Loader2 } from 'lucide-react'
 
 const statusFlow = [
   "Запитали за товар",
@@ -110,16 +110,25 @@ export default function Home() {
   const [newSellerName, setNewSellerName] = useState("")
   const [newSellerPerson, setNewSellerPerson] = useState("")
   const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+  const [isCreating, setIsCreating] = useState(false)
+  const [editingPerson, setEditingPerson] = useState<string | null>(null)
 
   useEffect(() => {
     const loadSellers = async () => {
-      const fetchedSellers = await fetchSellers()
-      // Sort sellers by updatedAt in descending order
-      const sortedSellers = fetchedSellers.sort(
-        (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
-      )
-      setSellers(sortedSellers)
-      setFilteredSellers(sortedSellers)
+      setIsLoading(true)
+      try {
+        const fetchedSellers = await fetchSellers()
+        const sortedSellers = fetchedSellers.sort(
+          (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+        )
+        setSellers(sortedSellers)
+        setFilteredSellers(sortedSellers)
+      } catch (error) {
+        console.error("Failed to load sellers:", error)
+      } finally {
+        setIsLoading(false)
+      }
     }
     loadSellers()
   }, [])
@@ -129,7 +138,7 @@ export default function Home() {
       (seller) =>
         seller.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
         (statusFilter === "all" || seller.status === statusFilter) &&
-        (personFilter === "all" || seller.person === personFilter),
+        (personFilter === "all" || seller.person === personFilter)
     )
     setFilteredSellers(filtered)
   }, [searchTerm, statusFilter, personFilter, sellers])
@@ -137,20 +146,44 @@ export default function Home() {
   const handleStatusChange = async (sellerId: string, newStatus: string) => {
     await changeSellerStatus({ sellerId, newStatus })
     const updatedSellers = sellers.map((seller) =>
-      seller._id === sellerId ? { ...seller, status: newStatus, updatedAt: new Date().toISOString() } : seller,
+      seller._id === sellerId ? { ...seller, status: newStatus, updatedAt: new Date().toISOString() } : seller
     )
     setSellers(updatedSellers)
   }
 
+  const handlePersonChange = async (sellerId: string, newPerson: string) => {
+    await changeSellerPerson({ sellerId, newPerson })
+    const updatedSellers = sellers.map((seller) =>
+      seller._id === sellerId ? { ...seller, person: newPerson, updatedAt: new Date().toISOString() } : seller
+    )
+    setSellers(updatedSellers)
+    setEditingPerson(null)
+  }
+
   const handleCreateSeller = async () => {
-    const newSeller = await createSeller({ name: newSellerName, person: newSellerPerson })
-    setSellers((prevSellers) => [newSeller, ...prevSellers])
-    setNewSellerName("")
-    setNewSellerPerson("")
-    setIsDialogOpen(false)
+    setIsCreating(true)
+    try {
+      const result = await createSeller({ name: newSellerName, person: newSellerPerson }, 'json')
+      setSellers((prevSellers) => [JSON.parse(result), ...prevSellers])
+      setNewSellerName("")
+      setNewSellerPerson("")
+      setIsDialogOpen(false)
+    } catch (error) {
+      console.error("Failed to create seller:", error)
+    } finally {
+      setIsCreating(false)
+    }
   }
 
   const persons = Array.from(new Set(sellers.map((seller) => seller.person)))
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    )
+  }
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -226,7 +259,10 @@ export default function Home() {
                 />
               </div>
             </div>
-            <Button onClick={handleCreateSeller}>Create Seller</Button>
+            <Button onClick={handleCreateSeller} disabled={isCreating}>
+              {isCreating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Create Seller
+            </Button>
           </DialogContent>
         </Dialog>
       </div>
@@ -255,7 +291,30 @@ export default function Home() {
                     {seller.status}
                   </span>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">{seller.person}</td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  {editingPerson === seller._id ? (
+                    <Input
+                      value={seller.person}
+                      onChange={(e) => {
+                        const updatedSellers = sellers.map((s) =>
+                          s._id === seller._id ? { ...s, person: e.target.value } : s
+                        )
+                        setSellers(updatedSellers)
+                      }}
+                      onBlur={() => handlePersonChange(seller._id, seller.person)}
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter') {
+                          handlePersonChange(seller._id, seller.person)
+                        }
+                      }}
+                      className="w-fit"
+                    />
+                  ) : (
+                    <span onClick={() => setEditingPerson(seller._id)} className="cursor-pointer hover:underline">
+                      {seller.person}
+                    </span>
+                  )}
+                </td>
                 <td className="px-6 py-4 whitespace-nowrap">{new Date(seller.updatedAt).toLocaleString()}</td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <Select value={seller.status} onValueChange={(value) => handleStatusChange(seller._id, value)}>
