@@ -8,7 +8,9 @@ import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
-import { Plus, Search, ArrowLeft, ArrowRight, CheckCircle2, XCircle, Loader2 } from 'lucide-react'
+import { Plus, Search, ArrowLeft, ArrowRight, CheckCircle2, XCircle, Loader2, Copy } from "lucide-react"
+import toast, { Toaster } from "react-hot-toast"
+import copy from "clipboard-copy"
 
 const statusFlow = [
   "Запитали за товар",
@@ -101,6 +103,35 @@ const getStatusIcon = (status: string) => {
   }
 }
 
+const getDayTime = () => {
+  const hours = new Date().getHours();
+
+  if (hours >= 5 && hours < 12) {
+    return "ранку"; // morning
+  } else if (hours >= 12 && hours < 18) {
+    return "дня"; // afternoon
+  } else {
+    return "вечора"; // evening
+  }
+}
+
+const getClipboardText = (status: string) => {
+  const dayTime = getDayTime();  // Get the current time of day
+
+  switch (status) {
+    case "Запитали за товар":
+      return `Доброго ${dayTime}!) У вас є веб-сторінка де можна весь каталог джинсів глянути?)`
+    case "Дякую":
+      return `Дякую!)`
+    case "Запропонували":
+      return `Доброго ${dayTime}, я тут посидів трохи вчора і зробив вам власний інтернет магазин. Якщо хочете глянути, то можу кинути лінк. Переніс деякі ваші товари)`
+    case "Надіслали сайт":
+      return `Доброго ${dayTime}, даруйте, що так пізно, були пари. Ось покликання, воно частинами, адже Розетка блокує, якщо кидати повним`
+    default:
+      return null
+  }
+}
+
 export default function Home() {
   const [sellers, setSellers] = useState<SellerType[]>([])
   const [filteredSellers, setFilteredSellers] = useState<SellerType[]>([])
@@ -120,7 +151,7 @@ export default function Home() {
       try {
         const fetchedSellers = await fetchSellers()
         const sortedSellers = fetchedSellers.sort(
-          (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+          (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
         )
         setSellers(sortedSellers)
         setFilteredSellers(sortedSellers)
@@ -138,15 +169,28 @@ export default function Home() {
       (seller) =>
         seller.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
         (statusFilter === "all" || seller.status === statusFilter) &&
-        (personFilter === "all" || seller.person === personFilter)
+        (personFilter === "all" || seller.person === personFilter),
     )
     setFilteredSellers(filtered)
   }, [searchTerm, statusFilter, personFilter, sellers])
 
+  const handleCopyToClipboard = (status: string, sellerName: string) => {
+    const text = getClipboardText(status)
+    if (text) {
+      copy(text)
+        .then(() => {
+          toast.success(`Скопійовано: ${text.substring(0, 50)}...`)
+        })
+        .catch(() => {
+          toast.error("Не вдалося скопіювати текст")
+        })
+    }
+  }
+
   const handleStatusChange = async (sellerId: string, newStatus: string) => {
     await changeSellerStatus({ sellerId, newStatus })
     const updatedSellers = sellers.map((seller) =>
-      seller._id === sellerId ? { ...seller, status: newStatus, updatedAt: new Date().toISOString() } : seller
+      seller._id === sellerId ? { ...seller, status: newStatus, updatedAt: new Date().toISOString() } : seller,
     )
     setSellers(updatedSellers)
   }
@@ -154,7 +198,7 @@ export default function Home() {
   const handlePersonChange = async (sellerId: string, newPerson: string) => {
     await changeSellerPerson({ sellerId, newPerson })
     const updatedSellers = sellers.map((seller) =>
-      seller._id === sellerId ? { ...seller, person: newPerson, updatedAt: new Date().toISOString() } : seller
+      seller._id === sellerId ? { ...seller, person: newPerson, updatedAt: new Date().toISOString() } : seller,
     )
     setSellers(updatedSellers)
     setEditingPerson(null)
@@ -163,7 +207,7 @@ export default function Home() {
   const handleCreateSeller = async () => {
     setIsCreating(true)
     try {
-      const result = await createSeller({ name: newSellerName, person: newSellerPerson }, 'json')
+      const result = await createSeller({ name: newSellerName, person: newSellerPerson }, "json")
       setSellers((prevSellers) => [JSON.parse(result), ...prevSellers])
       setNewSellerName("")
       setNewSellerPerson("")
@@ -187,6 +231,7 @@ export default function Home() {
 
   return (
     <div className="container mx-auto px-4 py-8">
+      <Toaster position="top-right" />
       <h1 className="text-3xl font-bold mb-8">Seller Management</h1>
       <div className="flex flex-col md:flex-row justify-between items-center mb-6 space-y-4 md:space-y-0 md:space-x-4">
         <div className="relative w-full md:w-1/3">
@@ -297,17 +342,17 @@ export default function Home() {
                       value={seller.person}
                       onChange={(e) => {
                         const updatedSellers = sellers.map((s) =>
-                          s._id === seller._id ? { ...s, person: e.target.value } : s
+                          s._id === seller._id ? { ...s, person: e.target.value } : s,
                         )
                         setSellers(updatedSellers)
                       }}
                       onBlur={() => handlePersonChange(seller._id, seller.person)}
                       onKeyPress={(e) => {
-                        if (e.key === 'Enter') {
+                        if (e.key === "Enter") {
                           handlePersonChange(seller._id, seller.person)
                         }
                       }}
-                      className="w-fit"
+                      className="w-full"
                     />
                   ) : (
                     <span onClick={() => setEditingPerson(seller._id)} className="cursor-pointer hover:underline">
@@ -317,24 +362,36 @@ export default function Home() {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">{new Date(seller.updatedAt).toLocaleString()}</td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <Select value={seller.status} onValueChange={(value) => handleStatusChange(seller._id, value)}>
-                    <SelectTrigger className="w-[200px]">
-                      <SelectValue placeholder="Change status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {getAvailableStatuses(seller.status).map((status, index) => (
-                        <SelectItem key={status} value={status}>
-                          <span className={`flex items-center ${getStatusColor(status)}`}>
-                            {index === 0 && status !== seller.status && <ArrowLeft className="mr-2" size={16} />}
-                            {status === seller.status && <span className="font-bold mr-2">Current:</span>}
-                            {index > 0 && status !== seller.status && <ArrowRight className="mr-2" size={16} />}
-                            {getStatusIcon(status)}
-                            {status}
-                          </span>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <div className="flex items-center space-x-2">
+                    <Select value={seller.status} onValueChange={(value) => handleStatusChange(seller._id, value)}>
+                      <SelectTrigger className="w-[200px]">
+                        <SelectValue placeholder="Change status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {getAvailableStatuses(seller.status).map((status, index) => (
+                          <SelectItem key={status} value={status}>
+                            <span className={`flex items-center ${getStatusColor(status)}`}>
+                              {index === 0 && status !== seller.status && <ArrowLeft className="mr-2" size={16} />}
+                              {status === seller.status && <span className="font-bold mr-2">Current:</span>}
+                              {index > 0 && status !== seller.status && <ArrowRight className="mr-2" size={16} />}
+                              {getStatusIcon(status)}
+                              {status}
+                            </span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {getClipboardText(seller.status, seller.name) && (
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => handleCopyToClipboard(seller.status, seller.name)}
+                        title="Copy to clipboard"
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
                 </td>
               </tr>
             ))}
