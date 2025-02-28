@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { fetchSellers, createSeller, changeSellerStatus, changeSellerPerson } from "@/lib/actions/seller.actions"
+import { fetchSellers, createSeller, changeSellerStatus, changeSellerPerson, addChatUrl } from "@/lib/actions/seller.actions"
 import type { SellerType } from "@/lib/models/seller.model"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -12,6 +12,7 @@ import { Plus, Search, ArrowLeft, ArrowRight, CheckCircle2, XCircle, Loader2, Co
 import toast, { Toaster } from "react-hot-toast"
 import copy from "clipboard-copy"
 import Link from "next/link"
+import { AddChatUrlModal } from "@/components/shared/AddChatUrl"
 
 const statusFlow = [
   "Запитали за товар",
@@ -142,7 +143,6 @@ export default function Home() {
   const [personFilter, setPersonFilter] = useState("all")
   const [newSellerName, setNewSellerName] = useState("")
   const [newSellerPerson, setNewSellerPerson] = useState("")
-  const [chatUrl, setChatUrl] = useState("")
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [isCreating, setIsCreating] = useState(false)
@@ -219,10 +219,19 @@ export default function Home() {
     setEditingPerson(null)
   }
 
+  const handleChatAdd = async (sellerId: string, chatUrl: string) => {
+    await addChatUrl({ sellerId, chatUrl })
+    const updatedSellers = sellers.map((seller) =>
+      seller._id === sellerId ? { ...seller, chatUrl: chatUrl, updatedAt: new Date().toISOString() } : seller,
+    )
+    setSellers(updatedSellers)
+    setEditingPerson(null)
+  }
+
   const handleCreateSeller = async () => {
     setIsCreating(true)
     try {
-      const result = await createSeller({ name: newSellerName, person: newSellerPerson, chatUrl}, "json")
+      const result = await createSeller({ name: newSellerName, person: newSellerPerson }, "json")
       setSellers((prevSellers) => [JSON.parse(result), ...prevSellers])
       setNewSellerName("")
       setNewSellerPerson("")
@@ -327,17 +336,6 @@ export default function Home() {
                   className="col-span-3"
                 />
               </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="person" className="text-right">
-                  Chat url
-                </Label>
-                <Input
-                  id="person"
-                  value={chatUrl}
-                  onChange={(e) => setChatUrl(e.target.value)}
-                  className="col-span-3"
-                />
-              </div>
             </div>
             <Button onClick={handleCreateSeller} disabled={isCreating}>
               {isCreating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
@@ -429,8 +427,15 @@ export default function Home() {
                     )}
                   </div>
                 </td>
-                {seller.chatUrl && (
-                  <td className="px-6 py-4 whitespace-nowrap"><Link href={seller.chatUrl}>Click</Link></td>
+                {seller.chatUrl ? (
+                  <td className="px-6 py-4 whitespace-nowrap"><Link href={seller?.chatUrl || ""}>Click</Link></td>
+                ): (
+                  <td>
+                    <AddChatUrlModal 
+                      sellerId={seller._id} 
+                      onAddChatUrl={handleChatAdd} 
+                    />
+                  </td>
                 )}
               </tr>
             ))}

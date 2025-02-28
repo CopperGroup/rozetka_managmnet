@@ -4,10 +4,10 @@ import Seller, { SellerType } from "../models/seller.model";
 import { connectToDB } from "../mongoose";
 
 
-export async function createSeller({ name, person, chatUrl }: { name: string, person: string, chatUrl: string }): Promise<SellerType>;
-export async function createSeller({ name, person, chatUrl }: { name: string, person: string, chatUrl: string }, type: 'json'): Promise<string>;
+export async function createSeller({ name, person }: { name: string, person: string }): Promise<SellerType>;
+export async function createSeller({ name, person }: { name: string, person: string }, type: 'json'): Promise<string>;
 
-export async function createSeller({ name, person, chatUrl }: { name: string, person: string, chatUrl: string }, type?: 'json') {
+export async function createSeller({ name, person }: { name: string, person: string }, type?: 'json') {
    try {
 
     connectToDB();
@@ -16,7 +16,6 @@ export async function createSeller({ name, person, chatUrl }: { name: string, pe
         name,
         status: "Запитали за товар",
         person,
-        chatUrl,
     })
 
     if(type === 'json'){
@@ -77,5 +76,20 @@ export async function changeSellerPerson({ sellerId, newPerson }: { sellerId: st
 
   } catch (error: any) {
     throw new Error(`Error changing seller person${error.message}`)
+  }
+}
+
+export async function addChatUrl({ sellerId, chatUrl }: { sellerId: string, chatUrl: string }) {
+  try {
+    connectToDB();
+
+    await Seller.findByIdAndUpdate(
+        sellerId,
+        {
+            chatUrl
+        }
+    )
+  } catch (error: any) {
+    throw new Error(`Error adding chat url: ${error.message}`)
   }
 }
