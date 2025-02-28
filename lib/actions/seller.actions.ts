@@ -4,10 +4,10 @@ import Seller, { SellerType } from "../models/seller.model";
 import { connectToDB } from "../mongoose";
 
 
-export async function createSeller({ name, person }: { name: string, person: string }): Promise<SellerType>;
-export async function createSeller({ name, person }: { name: string, person: string }, type: 'json'): Promise<string>;
+export async function createSeller({ name, person, contactProductLink }: { name: string, person: string, contactProductLink?: string }): Promise<SellerType>;
+export async function createSeller({ name, person, contactProductLink }: { name: string, person: string, contactProductLink?: string }, type: 'json'): Promise<string>;
 
-export async function createSeller({ name, person }: { name: string, person: string }, type?: 'json') {
+export async function createSeller({ name, person, contactProductLink }: { name: string, person: string, contactProductLink?: string }, type?: 'json') {
    try {
 
     connectToDB();
@@ -16,6 +16,7 @@ export async function createSeller({ name, person }: { name: string, person: str
         name,
         status: "Запитали за товар",
         person,
+        contactProductLink
     })
 
     if(type === 'json'){
@@ -91,5 +92,35 @@ export async function addChatUrl({ sellerId, chatUrl }: { sellerId: string, chat
     )
   } catch (error: any) {
     throw new Error(`Error adding chat url: ${error.message}`)
+  }
+}
+
+export async function addContactProductLink({ sellerId, contactProductLink }: { sellerId: string, contactProductLink: string }) {
+  try {
+    connectToDB();
+
+    await Seller.findByIdAndUpdate(
+        sellerId,
+        {
+            contactProductLink
+        }
+    )
+  } catch (error: any) {
+    throw new Error(`Error adding contact product link: ${error.message}`)
+  }
+}
+
+export async function addWebsiteUrl({ sellerId, websiteUrl }: { sellerId: string, websiteUrl: string }) {
+  try {
+    connectToDB();
+
+    await Seller.findByIdAndUpdate(
+        sellerId,
+        {
+            websiteUrl
+        }
+    )
+  } catch (error: any) {
+    throw new Error(`Error adding website url: ${error.message}`)
   }
 }

@@ -15,6 +15,12 @@ const sellerSchema = new mongoose.Schema({
     },
     chatUrl: {
         type: String
+    },
+    contactProductLink: {
+        type: String
+    },
+    websiteUrl: {
+        type: String
     }
 }, { timestamps: true });
 
