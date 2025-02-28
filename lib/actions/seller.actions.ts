@@ -4,10 +4,10 @@ import Seller, { SellerType } from "../models/seller.model";
 import { connectToDB } from "../mongoose";
 
 
-export async function createSeller({ name, person }: { name: string, person: string }): Promise<SellerType>;
-export async function createSeller({ name, person }: { name: string, person: string }, type: 'json'): Promise<string>;
+export async function createSeller({ name, person, chatUrl }: { name: string, person: string, chatUrl: string }): Promise<SellerType>;
+export async function createSeller({ name, person, chatUrl }: { name: string, person: string, chatUrl: string }, type: 'json'): Promise<string>;
 
-export async function createSeller({ name, person }: { name: string, person: string }, type?: 'json') {
+export async function createSeller({ name, person, chatUrl }: { name: string, person: string, chatUrl: string }, type?: 'json') {
    try {
 
     connectToDB();
@@ -16,6 +16,7 @@ export async function createSeller({ name, person }: { name: string, person: str
         name,
         status: "Запитали за товар",
         person,
+        chatUrl,
     })
 
     if(type === 'json'){

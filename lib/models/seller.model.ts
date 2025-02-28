@@ -13,6 +13,9 @@ const sellerSchema = new mongoose.Schema({
         type: String,
         required: [true, "Conatcint pesron name is required"]
     },
+    chatUrl: {
+        type: String
+    }
 }, { timestamps: true });
 
 type SellerType = InferSchemaType<typeof sellerSchema> & { _id: string };

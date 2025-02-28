@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Plus, Search, ArrowLeft, ArrowRight, CheckCircle2, XCircle, Loader2, Copy } from "lucide-react"
 import toast, { Toaster } from "react-hot-toast"
 import copy from "clipboard-copy"
+import Link from "next/link"
 
 const statusFlow = [
   "Запитали за товар",
@@ -104,27 +105,28 @@ const getStatusIcon = (status: string) => {
 }
 
 const getDayTime = () => {
-  const hours = new Date().getHours();
+  const hours = new Date().getHours()
 
   if (hours >= 5 && hours < 12) {
-    return "ранку"; // morning
+    return "ранку" // morning
   } else if (hours >= 12 && hours < 18) {
-    return "дня"; // afternoon
+    return "дня" // afternoon
   } else {
-    return "вечора"; // evening
+    return "вечора" // evening
   }
 }
 
-const getClipboardText = (status: string) => {
-  const dayTime = getDayTime();  // Get the current time of day
+const getClipboardText = (status: string, nicheName = "") => {
+  const dayTime = getDayTime() // Get the current time of day
+  const nicheText = nicheName ? ` ${nicheName}` : ""
 
   switch (status) {
     case "Запитали за товар":
-      return `Доброго ${dayTime}!) У вас є веб-сторінка де можна весь каталог джинсів глянути?)`
+      return `Доброго ${dayTime}!) У вас є веб-сторінка де можна весь каталог${nicheText} джинсів глянути?)`
     case "Дякую":
       return `Дякую!)`
     case "Запропонували":
-      return `Доброго ${dayTime}, я тут посидів трохи вчора і зробив вам власний інтернет магазин. Якщо хочете глянути, то можу кинути лінк. Переніс деякі ваші товари)`
+      return `Доброго ${dayTime}, я тут посидів трохи вчора і зробив вам власний інтернет магазин${nicheText}. Якщо хочете глянути, то можу кинути лінк. Переніс деякі ваші товари)`
     case "Надіслали сайт":
       return `Доброго ${dayTime}, даруйте, що так пізно, були пари. Ось покликання, воно частинами, адже Розетка блокує, якщо кидати повним`
     default:
@@ -140,10 +142,14 @@ export default function Home() {
   const [personFilter, setPersonFilter] = useState("all")
   const [newSellerName, setNewSellerName] = useState("")
   const [newSellerPerson, setNewSellerPerson] = useState("")
+  const [chatUrl, setChatUrl] = useState("")
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [isCreating, setIsCreating] = useState(false)
   const [editingPerson, setEditingPerson] = useState<string | null>(null)
+  const [nicheName, setNicheName] = useState("")
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage] = useState(50)
 
   useEffect(() => {
     const loadSellers = async () => {
@@ -174,8 +180,17 @@ export default function Home() {
     setFilteredSellers(filtered)
   }, [searchTerm, statusFilter, personFilter, sellers])
 
+  const indexOfLastItem = currentPage * itemsPerPage
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage
+  const currentSellers = filteredSellers.slice(indexOfFirstItem, indexOfLastItem)
+  const totalPages = Math.ceil(filteredSellers.length / itemsPerPage)
+
+  const handlePageChange = (pageNumber: number) => {
+    setCurrentPage(pageNumber)
+  }
+
   const handleCopyToClipboard = (status: string) => {
-    const text = getClipboardText(status)
+    const text = getClipboardText(status, nicheName)
     if (text) {
       copy(text)
         .then(() => {
@@ -207,7 +222,7 @@ export default function Home() {
   const handleCreateSeller = async () => {
     setIsCreating(true)
     try {
-      const result = await createSeller({ name: newSellerName, person: newSellerPerson }, "json")
+      const result = await createSeller({ name: newSellerName, person: newSellerPerson, chatUrl}, "json")
       setSellers((prevSellers) => [JSON.parse(result), ...prevSellers])
       setNewSellerName("")
       setNewSellerPerson("")
@@ -243,6 +258,15 @@ export default function Home() {
             className="pl-10"
           />
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+        </div>
+        <div className="relative w-full md:w-1/3">
+          <Input
+            type="text"
+            placeholder="Enter niche name..."
+            value={nicheName}
+            onChange={(e) => setNicheName(e.target.value)}
+            className="pl-3"
+          />
         </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="w-full md:w-[180px]">
@@ -303,6 +327,17 @@ export default function Home() {
                   className="col-span-3"
                 />
               </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="person" className="text-right">
+                  Chat url
+                </Label>
+                <Input
+                  id="person"
+                  value={chatUrl}
+                  onChange={(e) => setChatUrl(e.target.value)}
+                  className="col-span-3"
+                />
+              </div>
             </div>
             <Button onClick={handleCreateSeller} disabled={isCreating}>
               {isCreating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
@@ -324,10 +359,11 @@ export default function Home() {
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Actions
               </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Chat link</th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {filteredSellers.map((seller) => (
+            {currentSellers.map((seller) => (
               <tr key={seller._id}>
                 <td className="px-6 py-4 whitespace-nowrap">{seller.name}</td>
                 <td className="px-6 py-4 whitespace-nowrap">
@@ -385,7 +421,7 @@ export default function Home() {
                       <Button
                         variant="outline"
                         size="icon"
-                        onClick={() => handleCopyToClipboard(seller.status, seller.name)}
+                        onClick={() => handleCopyToClipboard(seller.status)}
                         title="Copy to clipboard"
                       >
                         <Copy className="h-4 w-4" />
@@ -393,11 +429,45 @@ export default function Home() {
                     )}
                   </div>
                 </td>
+                {seller.chatUrl && (
+                  <td className="px-6 py-4 whitespace-nowrap"><Link href={seller.chatUrl}>Click</Link></td>
+                )}
               </tr>
             ))}
           </tbody>
         </table>
+      <div className="mt-6 flex justify-center">
+        <div className="flex items-center space-x-2">
+          <Button 
+            variant="outline" 
+            onClick={() => handlePageChange(currentPage - 1)} 
+            disabled={currentPage === 1}
+          >
+            Previous
+          </Button>
+          <div className="flex items-center space-x-1">
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+              <Button
+                key={page}
+                variant={currentPage === page ? "default" : "outline"}
+                size="sm"
+                onClick={() => handlePageChange(page)}
+                className="w-8 h-8 p-0"
+              >
+                {page}
+              </Button>
+            ))}
+          </div>
+          <Button 
+            variant="outline" 
+            onClick={() => handlePageChange(currentPage + 1)} 
+            disabled={currentPage === totalPages}
+          >
+            Next
+          </Button>
+        </div>
       </div>
+    </div>
     </div>
   )
 }
