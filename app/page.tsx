@@ -428,7 +428,7 @@ export default function Home() {
                   </div>
                 </td>
                 {seller.chatUrl ? (
-                  <td className="px-6 py-4 whitespace-nowrap"><Link href={seller?.chatUrl || ""}>Click</Link></td>
+                  <td className="px-6 py-4 whitespace-nowrap"><Link href={seller?.chatUrl || ""} target="_blank">Click</Link></td>
                 ): (
                   <td>
                     <AddChatUrlModal 
