@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { fetchSellers } from "@/lib/actions/seller.actions"
 import type { SellerType } from "@/lib/models/seller.model"
-import { Loader2 } from 'lucide-react'
+import { Loader2 } from "lucide-react"
 import { Toaster } from "react-hot-toast"
 import Pagination from "@/components/table/Pagination"
 import SellerTable from "@/components/table/SellerTable"
@@ -11,6 +11,7 @@ import TableSettings from "@/components/table/TableSettings"
 import AddSeller from "@/components/forms/AddSeller"
 import SearchFilters from "@/components/table/SearchFilters"
 import { Header } from "@/components/shared/Header"
+import { isSameDay } from "date-fns"
 
 export default function Home() {
   const [sellers, setSellers] = useState<SellerType[]>([])
@@ -18,7 +19,9 @@ export default function Home() {
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const [personFilter, setPersonFilter] = useState("all")
+  const [currentPerson, setCurrentPerson] = useState("")
   const [nicheName, setNicheName] = useState("")
+  const [dateFilter, setDateFilter] = useState<Date | undefined>(undefined)
   const [isLoading, setIsLoading] = useState(true)
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage] = useState(50)
@@ -31,7 +34,7 @@ export default function Home() {
     actions: true,
     chatLink: true,
     contactProduct: true,
-    websiteLink: true
+    websiteLink: true,
   })
 
   useEffect(() => {
@@ -58,10 +61,12 @@ export default function Home() {
       (seller) =>
         seller.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
         (statusFilter === "all" || seller.status === statusFilter) &&
-        (personFilter === "all" || seller.person === personFilter),
+        (personFilter === "all" || seller.person === personFilter) &&
+        (!dateFilter || isSameDay(new Date(seller.updatedAt), dateFilter)),
     )
     setFilteredSellers(filtered)
-  }, [searchTerm, statusFilter, personFilter, sellers])
+    setCurrentPage(1) // Reset to first page when filters change
+  }, [searchTerm, statusFilter, personFilter, dateFilter, sellers])
 
   const indexOfLastItem = currentPage * itemsPerPage
   const indexOfFirstItem = indexOfLastItem - itemsPerPage
@@ -89,7 +94,7 @@ export default function Home() {
         <Toaster position="top-right" />
         <h1 className="text-3xl font-bold mb-8">Seller Management</h1>
 
-        <div className="flex flex-col md:flex-row justify-between items-center mb-6">
+        <div className="flex flex-col md:flex-row justify-between items-center mb-2">
           <SearchFilters
             searchTerm={searchTerm}
             setSearchTerm={setSearchTerm}
@@ -101,11 +106,14 @@ export default function Home() {
             setPersonFilter={setPersonFilter}
             persons={persons}
             onOpenSettings={() => setIsSettingsOpen(true)}
+            dateFilter={dateFilter}
+            setDateFilter={setDateFilter} 
+            currentPerson={currentPerson} 
+            setCurrentPerson={setCurrentPerson}          
           />
-
-          <AddSeller
-            setSellers={setSellers}
-          />
+        </div>
+        <div className="w-full flex justify-end mb-6">
+          <AddSeller setSellers={setSellers} />
         </div>
 
         <TableSettings
@@ -124,12 +132,9 @@ export default function Home() {
           />
         </div>
 
-        <Pagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          handlePageChange={handlePageChange}
-        />
+        <Pagination currentPage={currentPage} totalPages={totalPages} handlePageChange={handlePageChange} />
       </main>
     </>
   )
 }
+

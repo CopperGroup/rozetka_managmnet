@@ -124,3 +124,23 @@ export async function addWebsiteUrl({ sellerId, websiteUrl }: { sellerId: string
     throw new Error(`Error adding website url: ${error.message}`)
   }
 }
+
+export async function updateSeller(sellerId: string, updateData: Partial<SellerType>) {
+  try {
+    if (!sellerId) throw new Error("Seller ID is required for updating.");
+
+    await connectToDB();
+
+    const updatedSeller = await Seller.findByIdAndUpdate(
+      sellerId,
+      { $set: updateData },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedSeller) throw new Error("Seller not found.");
+
+    // return updatedSeller;
+  } catch (error: any) {
+    throw new Error(`Failed to update seller: ${error.message}`);
+  }
+}

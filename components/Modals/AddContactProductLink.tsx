@@ -11,7 +11,7 @@ import { Loader2 } from "lucide-react"
 
 interface AddContactProductLinkModalProps {
   sellerId: string
-  onAddContactProductLink: (sellerId: string, contactProductLink: string) => Promise<void>
+  onAddContactProductLink: (sellerId: string, contactProductLink: string) => void
 }
 
 export function AddContactProductLinkModal({ sellerId, onAddContactProductLink }: AddContactProductLinkModalProps) {

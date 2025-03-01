@@ -6,14 +6,14 @@ import { useState } from "react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { ArrowLeft, ArrowRight, Copy, ExternalLink } from "lucide-react"
+import { ArrowLeft, ArrowRight, Copy, ExternalLink, Edit2, Check, X } from "lucide-react"
 import Link from "next/link"
 import copy from "clipboard-copy"
 import toast from "react-hot-toast"
 import { AddChatUrlModal } from "@/components/Modals/AddChatUrl"
 import { AddContactProductLinkModal } from "@/components/Modals/AddContactProductLink"
 import { AddWebsiteUrlModal } from "@/components/Modals/AddWebsiteUrlModal"
-import { changeSellerStatus, changeSellerPerson } from "@/lib/actions/seller.actions"
+import { changeSellerStatus, updateSeller } from "@/lib/actions/seller.actions"
 import type { SellerType } from "@/lib/models/seller.model"
 import {
   getAvailableStatuses,
@@ -28,6 +28,7 @@ interface SellerTableProps {
   sellers: SellerType[]
   setSellers: React.Dispatch<React.SetStateAction<SellerType[]>>
   nicheName: string
+  currentPerson: string
   visibleColumns: {
     name: boolean
     status: boolean
@@ -40,8 +41,46 @@ interface SellerTableProps {
   }
 }
 
-export default function SellerTable({ sellers, setSellers, nicheName, visibleColumns }: SellerTableProps) {
-  const [editingPerson, setEditingPerson] = useState<string | null>(null)
+export default function SellerTable({
+  sellers,
+  setSellers,
+  nicheName,
+  currentPerson,
+  visibleColumns,
+}: SellerTableProps) {
+  const [editingSeller, setEditingSeller] = useState<string | null>(null)
+  const [editedValues, setEditedValues] = useState<Partial<SellerType>>({})
+
+  const handleEdit = (sellerId: string) => {
+    setEditingSeller(sellerId)
+    setEditedValues(sellers.find((s) => s._id === sellerId) || {})
+  }
+
+  const handleCancelEdit = () => {
+    setEditingSeller(null)
+    setEditedValues({})
+  }
+
+  const handleSaveEdit = async (sellerId: string) => {
+    try {
+      await updateSeller(sellerId, editedValues)
+      setSellers((prevSellers) =>
+        prevSellers.map((seller) =>
+          seller._id === sellerId ? { ...seller, ...editedValues, updatedAt: new Date().toISOString() } : seller,
+        ),
+      )
+      setEditingSeller(null)
+      setEditedValues({})
+      toast.success("Seller updated successfully")
+    } catch (error) {
+      console.error("Failed to update seller:", error)
+      toast.error("Failed to update seller")
+    }
+  }
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>, field: keyof SellerType) => {
+    setEditedValues((prev) => ({ ...prev, [field]: e.target.value }))
+  }
 
   const handleStatusChange = async (sellerId: string, newStatus: string) => {
     await changeSellerStatus({ sellerId, newStatus })
@@ -51,7 +90,6 @@ export default function SellerTable({ sellers, setSellers, nicheName, visibleCol
       ),
     )
 
-    // Get the seller's name for the clipboard text
     const seller = sellers.find((s) => s._id === sellerId)
     if (seller) {
       const clipboardText = getClipboardText(newStatus, nicheName || seller.name)
@@ -69,42 +107,6 @@ export default function SellerTable({ sellers, setSellers, nicheName, visibleCol
     }
   }
 
-  const handlePersonChange = async (sellerId: string, newPerson: string) => {
-    await changeSellerPerson({ sellerId, newPerson })
-    setSellers((prevSellers) =>
-      prevSellers.map((seller) =>
-        seller._id === sellerId ? { ...seller, person: newPerson, updatedAt: new Date().toISOString() } : seller,
-      ),
-    )
-    setEditingPerson(null)
-  }
-
-  const handleChatAdd = async (sellerId: string, chatUrl: string) => {
-    setSellers((prevSellers) =>
-      prevSellers.map((seller) =>
-        seller._id === sellerId ? { ...seller, chatUrl: chatUrl, updatedAt: new Date().toISOString() } : seller,
-      ),
-    )
-  }
-
-  const handleAddContactProductLink = async (sellerId: string, contactProductLink: string) => {
-    setSellers((prevSellers) =>
-      prevSellers.map((seller) =>
-        seller._id === sellerId
-          ? { ...seller, contactProductLink: contactProductLink, updatedAt: new Date().toISOString() }
-          : seller,
-      ),
-    )
-  }
-
-  const handleAddWebsiteUrl = async (sellerId: string, websiteUrl: string) => {
-    setSellers((prevSellers) =>
-      prevSellers.map((seller) =>
-        seller._id === sellerId ? { ...seller, websiteUrl: websiteUrl, updatedAt: new Date().toISOString() } : seller,
-      ),
-    )
-  }
-
   const handleCopyToClipboard = (status: string, sellerName: string) => {
     const text = getClipboardText(status, nicheName || sellerName)
     if (text) {
@@ -115,6 +117,53 @@ export default function SellerTable({ sellers, setSellers, nicheName, visibleCol
         .catch(() => {
           toast.error("Не вдалося скопіювати текст")
         })
+    }
+  }
+
+  const handleChatAdd = async (sellerId: string, chatUrl: string) => {
+    try {
+      await updateSeller(sellerId, { chatUrl })
+      setSellers((prevSellers) =>
+        prevSellers.map((seller) =>
+          seller._id === sellerId ? { ...seller, chatUrl: chatUrl, updatedAt: new Date().toISOString() } : seller,
+        ),
+      )
+      toast.success("Chat URL added successfully")
+    } catch (error) {
+      console.error("Failed to add chat URL:", error)
+      toast.error("Failed to add chat URL")
+    }
+  }
+
+  const handleAddContactProductLink = async (sellerId: string, contactProductLink: string) => {
+    try {
+      await updateSeller(sellerId, { contactProductLink })
+      setSellers((prevSellers) =>
+        prevSellers.map((seller) =>
+          seller._id === sellerId
+            ? { ...seller, contactProductLink: contactProductLink, updatedAt: new Date().toISOString() }
+            : seller,
+        ),
+      )
+      toast.success("Contact product link added successfully")
+    } catch (error) {
+      console.error("Failed to add contact product link:", error)
+      toast.error("Failed to add contact product link")
+    }
+  }
+
+  const handleAddWebsiteUrl = async (sellerId: string, websiteUrl: string) => {
+    try {
+      await updateSeller(sellerId, { websiteUrl })
+      setSellers((prevSellers) =>
+        prevSellers.map((seller) =>
+          seller._id === sellerId ? { ...seller, websiteUrl: websiteUrl, updatedAt: new Date().toISOString() } : seller,
+        ),
+      )
+      toast.success("Website URL added successfully")
+    } catch (error) {
+      console.error("Failed to add website URL:", error)
+      toast.error("Failed to add website URL")
     }
   }
 
@@ -163,13 +212,26 @@ export default function SellerTable({ sellers, setSellers, nicheName, visibleCol
                 Website link
               </th>
             )}
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+              Edit
+            </th>
           </tr>
         </thead>
         <tbody className="bg-white divide-y divide-gray-200 dark:bg-zinc-950 dark:divide-zinc-700">
           {sellers.map((seller) => (
             <tr key={seller._id} className="hover:bg-gray-50 dark:hover:bg-zinc-900">
               {visibleColumns.name && (
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">{seller.name}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">
+                  {editingSeller === seller._id ? (
+                    <Input
+                      value={editedValues.name || ""}
+                      onChange={(e) => handleInputChange(e, "name")}
+                      className="w-full"
+                    />
+                  ) : (
+                    seller.name
+                  )}
+                </td>
               )}
               {visibleColumns.status && (
                 <td className="px-6 py-4 whitespace-nowrap">
@@ -181,26 +243,14 @@ export default function SellerTable({ sellers, setSellers, nicheName, visibleCol
               )}
               {visibleColumns.person && (
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">
-                  {editingPerson === seller._id ? (
+                  {editingSeller === seller._id ? (
                     <Input
-                      value={seller.person}
-                      onChange={(e) => {
-                        setSellers((prevSellers) =>
-                          prevSellers.map((s) => (s._id === seller._id ? { ...s, person: e.target.value } : s)),
-                        )
-                      }}
-                      onBlur={() => handlePersonChange(seller._id, seller.person)}
-                      onKeyPress={(e) => {
-                        if (e.key === "Enter") {
-                          handlePersonChange(seller._id, seller.person)
-                        }
-                      }}
+                      value={editedValues.person || ""}
+                      onChange={(e) => handleInputChange(e, "person")}
                       className="w-full"
                     />
                   ) : (
-                    <span onClick={() => setEditingPerson(seller._id)} className="cursor-pointer hover:underline">
-                      {seller.person}
-                    </span>
+                    seller.person
                   )}
                 </td>
               )}
@@ -245,7 +295,14 @@ export default function SellerTable({ sellers, setSellers, nicheName, visibleCol
               )}
               {visibleColumns.chatLink && (
                 <td className="px-6 py-4 whitespace-nowrap text-sm">
-                  {seller.chatUrl ? (
+                  {editingSeller === seller._id ? (
+                    <Input
+                      value={editedValues.chatUrl || ""}
+                      onChange={(e) => handleInputChange(e, "chatUrl")}
+                      className="w-full"
+                      placeholder="Enter chat URL"
+                    />
+                  ) : seller.chatUrl ? (
                     <Link
                       href={seller.chatUrl}
                       target="_blank"
@@ -263,7 +320,14 @@ export default function SellerTable({ sellers, setSellers, nicheName, visibleCol
               )}
               {visibleColumns.contactProduct && (
                 <td className="px-6 py-4 whitespace-nowrap text-sm">
-                  {seller.contactProductLink ? (
+                  {editingSeller === seller._id ? (
+                    <Input
+                      value={editedValues.contactProductLink || ""}
+                      onChange={(e) => handleInputChange(e, "contactProductLink")}
+                      className="w-full"
+                      placeholder="Enter contact product link"
+                    />
+                  ) : seller.contactProductLink ? (
                     <Link
                       href={seller.contactProductLink}
                       target="_blank"
@@ -284,7 +348,14 @@ export default function SellerTable({ sellers, setSellers, nicheName, visibleCol
               )}
               {visibleColumns.websiteLink && (
                 <td className="px-6 py-4 whitespace-nowrap text-sm">
-                  {seller.websiteUrl ? (
+                  {editingSeller === seller._id ? (
+                    <Input
+                      value={editedValues.websiteUrl || ""}
+                      onChange={(e) => handleInputChange(e, "websiteUrl")}
+                      className="w-full"
+                      placeholder="Enter website URL"
+                    />
+                  ) : seller.websiteUrl ? (
                     <Link
                       href={seller.websiteUrl}
                       target="_blank"
@@ -302,6 +373,22 @@ export default function SellerTable({ sellers, setSellers, nicheName, visibleCol
                   )}
                 </td>
               )}
+              <td className="px-6 py-4 whitespace-nowrap text-sm">
+                {editingSeller === seller._id ? (
+                    <>
+                      <Button variant="outline" size="icon" onClick={() => handleSaveEdit(seller._id)}>
+                        <Check className="h-4 w-4" />
+                      </Button>
+                      <Button variant="outline" size="icon" onClick={handleCancelEdit} className="ml-1">
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </>
+                  ) : (
+                    <Button variant="outline" size="icon" onClick={() => handleEdit(seller._id)}>
+                      <Edit2 className="h-4 w-4" />
+                    </Button>
+                )}
+              </td>
             </tr>
           ))}
         </tbody>

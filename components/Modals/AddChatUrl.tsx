@@ -11,7 +11,7 @@ import { Loader2 } from "lucide-react"
 
 interface AddChatUrlModalProps {
   sellerId: string
-  onAddChatUrl: (sellerId: string, chatUrl: string) => Promise<void>
+  onAddChatUrl: (sellerId: string, chatUrl: string) => void
 }
 
 export function AddChatUrlModal({ sellerId, onAddChatUrl }: AddChatUrlModalProps) {
