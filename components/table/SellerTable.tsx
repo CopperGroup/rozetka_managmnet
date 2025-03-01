@@ -22,7 +22,7 @@ import {
   getClipboardText,
   isStatusMoreThan,
 } from "@/lib/seller.utils"
-import { cn } from "@/lib/utils"
+import { cn, replaceRandomCyrillicWithLatin } from "@/lib/utils"
 
 interface SellerTableProps {
   sellers: SellerType[]
@@ -92,7 +92,7 @@ export default function SellerTable({
 
     const seller = sellers.find((s) => s._id === sellerId)
     if (seller) {
-      const clipboardText = getClipboardText(newStatus, nicheName || seller.name)
+      const clipboardText = replaceRandomCyrillicWithLatin(getClipboardText(newStatus, nicheName || seller.name) || "")
       if (clipboardText) {
         copy(clipboardText)
           .then(() => {
@@ -108,7 +108,7 @@ export default function SellerTable({
   }
 
   const handleCopyToClipboard = (status: string, sellerName: string) => {
-    const text = getClipboardText(status, nicheName || sellerName)
+    const text = replaceRandomCyrillicWithLatin(getClipboardText(status, nicheName || sellerName) || "")
     if (text) {
       copy(text)
         .then(() => {
