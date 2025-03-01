@@ -1,72 +1,82 @@
 "use client"
 
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { toast } from "react-hot-toast";
-import { Input } from "@/components/ui/input";
+import { useState, useEffect } from "react"
+import { Button } from "@/components/ui/button"
+import { toast } from "react-hot-toast"
+import { Textarea } from "@/components/ui/textarea"
 import copy from "clipboard-copy"
-
-const cyrillicToLatinMap: Record<string, string> = {
-  "а": "a",
-  "і": "i",
-  "е": "e",
-  "у": "y",
-  "о": "o",
-  "х": "x",
-  "р": "p",
-  "с": "c"
-};
-
-const replaceRandomCyrillicWithLatin = (text: string): string => {
-  const cyrillicIndices: number[] = [];
-  for (let i = 0; i < text.length; i++) {
-    if (cyrillicToLatinMap[text[i]]) {
-      cyrillicIndices.push(i);
-    }
-  }
-
-  if (cyrillicIndices.length === 0) return text;
-
-  const numToReplace = Math.max(1, Math.floor(Math.random() * cyrillicIndices.length) + 1);
-  const shuffledIndices = cyrillicIndices.sort(() => Math.random() - 0.5).slice(0, numToReplace);
-
-  const textArray = text.split("");
-  for (const index of shuffledIndices) {
-    textArray[index] = cyrillicToLatinMap[textArray[index]];
-  }
-
-  return textArray.join("");
-};
+import { replaceRandomCyrillicWithLatin } from "@/lib/utils"
+import { Copy } from "lucide-react"
 
 export default function CopyTextInput() {
-  const [text, setText] = useState("");
+  const [text, setText] = useState("")
+  const [transformedText, setTransformedText] = useState("")
+
+  // Update transformed text whenever input changes
+  useEffect(() => {
+    if (text) {
+      setTransformedText(replaceRandomCyrillicWithLatin(text))
+    } else {
+      setTransformedText("")
+    }
+  }, [text])
 
   const handleCopy = () => {
     if (!text) {
-      toast.error("Введіть текст для копіювання");
-      return;
+      toast.error("Введіть текст для копіювання")
+      return
     }
 
-    const transformedText = replaceRandomCyrillicWithLatin(text);
-    copy(transformedText);
-
-    toast.success(`Скопійовано: ${transformedText.substring(0, 50)}...`);
-  };
+    copy(transformedText)
+      .then(() => {
+        toast.success(`Скопійовано: ${transformedText.substring(0, 50)}${transformedText.length > 50 ? "..." : ""}`)
+      })
+      .catch(() => {
+        toast.error("Не вдалося скопіювати текст")
+      })
+  }
 
   return (
-    <div className="flex flex-col gap-3 w-full max-w-md mx-auto bg-black p-6 rounded-2xl shadow-lg">
-      <Input
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        placeholder="Введіть текст..."
-        className="bg-black text-white border border-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-white"
-      />
-      <Button
-        onClick={handleCopy}
-        className="w-full bg-white text-black font-semibold py-2 rounded-lg transition-all duration-200 hover:bg-gray-200 active:scale-95"
-      >
-        Скопіювати
-      </Button>
+    <div className="flex items-center justify-center min-h-screen p-4">
+      <div className="flex flex-col gap-5 w-full max-w-4xl p-8 rounded-2xl shadow-xl border border-white/20">
+        <h2 className="text-xl font-bold text-center mb-2">Конвертер тексту</h2>
+
+        <div className="flex flex-col sm:flex-row gap-4">
+          <div className="flex-1 space-y-2">
+            <label htmlFor="input-text" className="text-sm font-medium">
+              Оригінальний текст:
+            </label>
+            <Textarea
+              id="input-text"
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder="Введіть текст..."
+              className="border border-white/50 px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-transparent min-h-[200px] resize-none"
+            />
+          </div>
+
+          <div className="flex-1 space-y-2">
+            <label htmlFor="output-text" className="text-sm font-medium">
+              Трансформований текст:
+            </label>
+            <Textarea
+              id="output-text"
+              value={transformedText}
+              readOnly
+              className="border border-white/50 px-4 py-3 rounded-lg focus:outline-none focus:ring-1 focus:ring-white/30 min-h-[200px] resize-none"
+            />
+          </div>
+        </div>
+
+        <Button
+          onClick={handleCopy}
+          className="w-full font-semibold py-3 rounded-lg transition-all duration-200 active:scale-95 flex items-center justify-center gap-2"
+        >
+          <Copy className="w-4 h-4" />
+          Скопіювати трансформований текст
+        </Button>
+      </div>
     </div>
-  );
+  )
 }
+

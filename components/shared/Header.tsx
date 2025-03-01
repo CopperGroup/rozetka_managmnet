@@ -31,6 +31,14 @@ export function Header() {
           >
             Templates
           </Link>
+          <Link
+            href="/replace-text"
+            className={`text-gray-700 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-colors ${
+              pathname === "/templates" ? "font-bold" : ""
+            }`}
+          >
+            Replace Text
+          </Link>
         </nav>
         <Button
           variant="ghost"

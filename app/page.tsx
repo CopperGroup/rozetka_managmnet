@@ -89,9 +89,7 @@ export default function Home() {
 
   return (
     <>
-      <Header />
       <main className="container mx-auto px-4 py-8">
-        <Toaster position="top-right" />
         <h1 className="text-3xl font-bold mb-8">Seller Management</h1>
 
         <div className="flex flex-col md:flex-row justify-between items-center mb-2">
