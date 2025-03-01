@@ -23,6 +23,7 @@ import {
   isStatusMoreThan,
 } from "@/lib/seller.utils"
 import { cn, replaceRandomCyrillicWithLatin } from "@/lib/utils"
+import { getPreviousStatus } from "@/constants/status-flow"
 
 interface SellerTableProps {
   sellers: SellerType[]
@@ -104,6 +105,11 @@ export default function SellerTable({
       } else {
         toast.success("Статус оновлено")
       }
+    }
+    const previousStatus = getPreviousStatus(newStatus);
+
+    if (previousStatus === seller?.status) {
+      window.open(seller?.chatUrl || "", "_blank", "noopener,noreferrer");
     }
   }
 
