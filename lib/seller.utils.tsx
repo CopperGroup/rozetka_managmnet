@@ -30,7 +30,7 @@ export const getStatusColor = (status: string) => {
     case "Взяли/Дали контакт":
       return "text-blue-600"
     default:
-      return "text-gray-600"
+      return "text-gray-600 dark:text-gray-300"
   }
 }
 

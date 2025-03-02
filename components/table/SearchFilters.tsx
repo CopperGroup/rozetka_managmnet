@@ -63,7 +63,7 @@ export default function SearchFilters({
           className="pl-3"
         />
       </div>
-      <div className="relative w-full md:w-1/4">
+      {/* <div className="relative w-full md:w-1/4">
         <Input
           type="text"
           placeholder="Enter current person..."
@@ -71,7 +71,7 @@ export default function SearchFilters({
           onChange={(e) => setCurrentPerson(e.target.value)}
           className="pl-3"
         />
-      </div>
+      </div> */}
       <Select value={statusFilter} onValueChange={setStatusFilter}>
         <SelectTrigger className="w-full md:w-[180px]">
           <SelectValue placeholder="Filter by status" />

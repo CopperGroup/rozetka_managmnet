@@ -11,11 +11,18 @@ const templateSchema = new mongoose.Schema({
     },
     gitHubUrl: {
         type: String,
-        required: [true, "GitHub url pesron name is required"]
+        required: [true, "GitHub url is required"]
     },
     exampleUrl: {
-        type: String
-    }
+        type: String,
+        required: [true, "Example url is required"]
+    },
+    uploads: [
+        {
+            type: String,
+            required: [true, "Uploads are required"]
+        }
+    ]
 }, { timestamps: true });
 
 type TemplateType = InferSchemaType<typeof templateSchema> & { _id: string };

@@ -28,7 +28,6 @@ export default function AddSeller({ setSellers }: AddSellerProps) {
       const result = await createSeller({ name: newSellerName, person: newSellerPerson, contactProductLink }, "json")
       setSellers((prevSellers) => [JSON.parse(result), ...prevSellers])
       setNewSellerName("")
-      setNewSellerPerson("")
       setContactProductLink("")
       setIsDialogOpen(false)
     } catch (error) {
