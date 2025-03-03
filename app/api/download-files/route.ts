@@ -36,8 +36,10 @@ export async function POST(req: NextRequest) {
 
     // Function to determine the correct filename and folder path
     const getFileNameAndFolder = (url: string) => {
-      const originalName = url.split("/").pop() || "file";
+      let originalName = url.split("/").pop() || "file";
       const extension = originalName.substring(originalName.lastIndexOf("."));
+
+      originalName = originalName.replace(/_(.*?)\./, ".");
 
       // Determine file type and folder structure
       if (componentUploads.includes(originalName)) {
@@ -78,7 +80,7 @@ export async function POST(req: NextRequest) {
 
     return new Response(zipBlob, {
       headers: {
-        "Content-Disposition": `attachment; filename="${name}.zip"`,
+        "Content-Disposition": `attachment; filename*=UTF-8''${encodeURIComponent(name)}.zip`,
         "Content-Type": "application/zip",
       },
     });
