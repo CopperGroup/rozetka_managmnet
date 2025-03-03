@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react"
 import type { TemplateType } from "@/lib/models/template.model"
 import CreateTemplate from "@/components/forms/CreateTemplate"
-import { TemplateCard } from "@/components/cards/TemplateCard"
 import { createTemplate, fetchTemplates } from "@/lib/actions/template.actions"
 import TemplateList from "@/components/templates/TemplateList"
 
