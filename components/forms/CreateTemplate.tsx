@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { toast } from "react-hot-toast"
-import { CheckCircle, type File, X, Plus } from "lucide-react"
+import { CheckCircle, X, Plus } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import type { TemplateType } from "@/lib/models/template.model"
@@ -29,7 +29,15 @@ const componentUploads = [
   "ProductCard.tsx",
 ]
 
-const imageUploads = ["banner-hero.jpg", "1.jpg", "2.jpg", "3.jpg", "about-us.jpeg", "history-image.jpg", "loginbackground.jpg"]
+const imageUploads = [
+  "banner-hero.jpg",
+  "1.jpg",
+  "2.jpg",
+  "3.jpg",
+  "about-us.jpeg",
+  "history-image.jpg",
+  "loginbackground.jpg",
+]
 
 export default function CreateTemplate({ onCreateTemplate }: CreateTemplateProps) {
   const [isOpen, setIsOpen] = useState(false)
@@ -39,47 +47,61 @@ export default function CreateTemplate({ onCreateTemplate }: CreateTemplateProps
   const [exampleUrl, setExampleUrl] = useState("")
   const [uploads, setUploads] = useState<Record<string, File | null>>({})
   const [isLoading, setIsLoading] = useState(false)
+  const [customUploads, setCustomUploads] = useState<File[]>([])
 
-  const { uploadFiles, isUploading, error } = useUpload();
+  const { uploadFiles, isUploading, error } = useUpload()
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+    e.preventDefault()
     setIsLoading(true)
     try {
-      const fileUploads = Object.values(uploads).filter((file): file is File => file !== null);
-  
-      console.log(fileUploads)
-      const uploadedFiles = await uploadFiles(fileUploads);
-      
-      if (!uploadedFiles || uploadedFiles.length !== fileUploads.length) {
-        toast.error("Some files failed to upload");
-        return;
+      const fileUploads = Object.values(uploads).filter((file): file is File => file !== null)
+
+      // Add custom uploads to the fileUploads array
+      const allFileUploads = [...fileUploads, ...customUploads]
+
+      console.log(allFileUploads)
+      const uploadedFiles = await uploadFiles(allFileUploads)
+
+      if (!uploadedFiles || uploadedFiles.length !== allFileUploads.length) {
+        toast.error("Some files failed to upload")
+        return
       }
-  
+
       await onCreateTemplate({
         name,
         author,
         gitHubUrl,
         exampleUrl,
-        uploads: uploadedFiles
-      });
-  
-      toast.success("Template created successfully!");
-      setIsOpen(false);
-      resetForm();
+        uploads: uploadedFiles,
+      })
+
+      toast.success("Template created successfully!")
+      setIsOpen(false)
+      resetForm()
       setIsLoading(false)
     } catch (error) {
       setIsLoading(false)
-      toast.error("Failed to create template");
+      toast.error("Failed to create template")
       console.log(error)
     }
-  };
-  
+  }
 
   const handleFileChange = (fileName: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setUploads((prev) => ({ ...prev, [fileName]: e.target.files![0] }))
     }
+  }
+
+  const handleCustomFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const newFiles = Array.from(e.target.files)
+      setCustomUploads((prev) => [...prev, ...newFiles])
+    }
+  }
+
+  const removeCustomFile = (index: number) => {
+    setCustomUploads((prev) => prev.filter((_, i) => i !== index))
   }
 
   const removeFile = (fileName: string) => {
@@ -91,6 +113,7 @@ export default function CreateTemplate({ onCreateTemplate }: CreateTemplateProps
     setAuthor("")
     setGitHubUrl("")
     setUploads({})
+    setCustomUploads([])
   }
 
   const FileUploadItem = ({ fileName }: { fileName: string }) => (
@@ -116,7 +139,7 @@ export default function CreateTemplate({ onCreateTemplate }: CreateTemplateProps
               type="file"
               onChange={handleFileChange(fileName)}
               className="hidden"
-              accept={/\.(jpe?g|png|gif|webp|svg)$/i.test(fileName)  ? "image/*" : ".ts,.tsx"}
+              accept={/\.(jpe?g|png|gif|webp|svg)$/i.test(fileName) ? "image/*" : ".ts,.tsx"}
             />
           </label>
         )}
@@ -175,8 +198,8 @@ export default function CreateTemplate({ onCreateTemplate }: CreateTemplateProps
                 required
               />
             </div>
-            <Button type="submit" className="w-full mt-4">
-              Create Template
+            <Button type="submit" className="w-full mt-4" disabled={isLoading}>
+              {isLoading ? "Creating..." : "Create Template"}
             </Button>
           </div>
           <div className="flex-1">
@@ -196,6 +219,57 @@ export default function CreateTemplate({ onCreateTemplate }: CreateTemplateProps
                     {imageUploads.map((fileName) => (
                       <FileUploadItem key={fileName} fileName={fileName} />
                     ))}
+                  </div>
+                </div>
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="font-semibold">Custom Uploads</h3>
+                    <label htmlFor="custom-file-upload" className="cursor-pointer">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-7 px-2"
+                        onClick={() => document.getElementById("custom-file-upload")?.click()}
+                      >
+                        <Plus className="w-4 h-4 mr-1" />
+                        Add File
+                      </Button>
+                      <Input
+                        id="custom-file-upload"
+                        type="file"
+                        onChange={handleCustomFileChange}
+                        className="hidden"
+                        multiple
+                      />
+                    </label>
+                  </div>
+                  <div className="space-y-2">
+                    {customUploads.map((file, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center justify-between p-2 bg-gray-100 dark:bg-gray-800 rounded-md"
+                      >
+                        <span className="flex-1 text-sm truncate">{file.name}</span>
+                        <div className="flex items-center gap-2">
+                          <CheckCircle className="w-5 h-5 text-green-500" />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeCustomFile(index)}
+                            className="p-1 h-auto"
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                    {customUploads.length === 0 && (
+                      <div className="text-center py-4 text-sm text-muted-foreground">
+                        Click the "Add File" button to add custom uploads
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
