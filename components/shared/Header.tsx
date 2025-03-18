@@ -6,6 +6,7 @@ import { useTheme } from "next-themes"
 import { usePathname } from "next/navigation"
 
 import { Button } from "@/components/ui/button"
+import { createSellersJson } from "@/lib/actions/seller.actions"
 
 export function Header() {
   const { setTheme, theme } = useTheme()

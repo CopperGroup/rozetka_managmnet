@@ -41,7 +41,9 @@ export default function Home() {
     const loadSellers = async () => {
       setIsLoading(true)
       try {
-        const fetchedSellers = await fetchSellers()
+        const result = await fetchSellers("json");
+        const fetchedSellers: SellerType[] = JSON.parse(result)
+
         const sortedSellers = fetchedSellers.sort(
           (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
         )

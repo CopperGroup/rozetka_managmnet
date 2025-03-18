@@ -36,7 +36,7 @@ export async function fetchSellers(type?: 'json') {
    try {
     connectToDB();
 
-    const sellers = await Seller.find();
+     const sellers = await Seller.find();
 
 
     if(type === 'json'){
@@ -142,5 +142,24 @@ export async function updateSeller(sellerId: string, updateData: Partial<SellerT
     // return updatedSeller;
   } catch (error: any) {
     throw new Error(`Failed to update seller: ${error.message}`);
+  }
+}
+
+import fs from 'fs';
+import path from 'path';
+
+export async function createSellersJson() {
+  try {
+    connectToDB();
+
+    const filePath = path.join("C:\\Users\\Користувач\\Desktop\\webdev\\rozetka_manager\\seller_messages.json");
+    const fileContent = fs.readFileSync(filePath, 'utf-8');
+    const sellers = JSON.parse(fileContent);
+
+    // await Seller.create(sellers.map(s => ({...s, status: "Запитали за товар"})))
+
+    await Seller.deleteMany({ person: "Vadim" });
+  } catch (error: any) {
+    throw new Error(`Error creating sellers from json: ${error.message}`)
   }
 }

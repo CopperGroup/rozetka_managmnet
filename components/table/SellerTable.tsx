@@ -29,7 +29,6 @@ interface SellerTableProps {
   sellers: SellerType[]
   setSellers: React.Dispatch<React.SetStateAction<SellerType[]>>
   nicheName: string
-  currentPerson: string
   visibleColumns: {
     name: boolean
     status: boolean
@@ -46,7 +45,6 @@ export default function SellerTable({
   sellers,
   setSellers,
   nicheName,
-  currentPerson,
   visibleColumns,
 }: SellerTableProps) {
   const [editingSeller, setEditingSeller] = useState<string | null>(null)
